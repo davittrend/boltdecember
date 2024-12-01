@@ -9,6 +9,7 @@ import { useAuth } from '@/hooks/useAuth';
 export function Accounts() {
   const [isConnecting, setIsConnecting] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isDisconnecting, setIsDisconnecting] = useState(false);
   const { user } = useAuth();
   const { 
     accounts, 
@@ -24,14 +25,14 @@ export function Accounts() {
     }
   }, [error]);
 
-  const handleConnectPinterest = async () => {
+  const handleConnectPinterest = () => {
     try {
       setIsConnecting(true);
       const authUrl = getPinterestAuthUrl();
       window.location.href = authUrl;
     } catch (error) {
+      console.error('Error connecting Pinterest:', error);
       toast.error('Failed to connect to Pinterest');
-      throw error;
     } finally {
       setIsConnecting(false);
     }
@@ -45,20 +46,27 @@ export function Accounts() {
       await useAccountStore.getState().setBoards(accountId, updatedBoards);
       toast.success('Boards refreshed successfully');
     } catch (error) {
+      console.error('Error refreshing boards:', error);
       toast.error('Failed to refresh boards');
-      throw error;
     } finally {
       setIsRefreshing(false);
     }
   };
 
   const handleDisconnectAccount = async (accountId: string) => {
+    if (!window.confirm('Are you sure you want to disconnect this account?')) {
+      return;
+    }
+
     try {
+      setIsDisconnecting(true);
       await useAccountStore.getState().removeAccount(accountId);
       toast.success('Account disconnected successfully');
     } catch (error) {
+      console.error('Error disconnecting account:', error);
       toast.error('Failed to disconnect account');
-      throw error;
+    } finally {
+      setIsDisconnecting(false);
     }
   };
 
@@ -114,9 +122,10 @@ export function Accounts() {
                   <Button
                     variant="outline"
                     onClick={() => handleDisconnectAccount(selectedAccountId)}
+                    disabled={isDisconnecting}
                   >
                     <Trash2 className="h-4 w-4 mr-2" />
-                    Disconnect
+                    {isDisconnecting ? 'Disconnecting...' : 'Disconnect'}
                   </Button>
                 </>
               )}
