@@ -11,101 +11,118 @@ export const handler: Handler = async (event) => {
   };
 
   if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 204, headers, body: '' };
+    return { 
+      statusCode: 204, 
+      headers,
+      body: '' 
+    };
   }
 
   try {
+    // Handle token exchange
     if (event.httpMethod === 'POST') {
       const { code, redirectUri, clientId, clientSecret } = JSON.parse(event.body || '{}');
 
-      if (!clientId || !clientSecret) {
-        throw new Error('Pinterest credentials not configured');
-      }
-
-      // Handle token exchange
-      if (code && redirectUri) {
-        console.log('Exchanging code for token...', { redirectUri });
-        
-        const tokenResponse = await fetch(`${PINTEREST_API_URL}/oauth/token`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'Authorization': `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`,
-          },
-          body: new URLSearchParams({
-            grant_type: 'authorization_code',
-            code,
-            redirect_uri: redirectUri,
-          }).toString(),
-        });
-
-        const tokenData = await tokenResponse.json();
-        
-        if (!tokenResponse.ok) {
-          console.error('Token exchange failed:', tokenData);
-          throw new Error(tokenData.error_description || 'Token exchange failed');
-        }
-
-        // Fetch user data
-        const userResponse = await fetch(`${PINTEREST_API_URL}/user_account`, {
-          headers: {
-            'Authorization': `Bearer ${tokenData.access_token}`,
-          },
-        });
-
-        const userData = await userResponse.json();
-        
-        if (!userResponse.ok) {
-          console.error('User data fetch failed:', userData);
-          throw new Error(userData.message || 'Failed to fetch user data');
-        }
-
+      if (!code || !redirectUri || !clientId || !clientSecret) {
         return {
-          statusCode: 200,
+          statusCode: 400,
           headers,
-          body: JSON.stringify({
-            token: tokenData,
-            user: userData,
-          }),
+          body: JSON.stringify({ message: 'Missing required parameters' }),
         };
       }
+
+      const tokenResponse = await fetch(`${PINTEREST_API_URL}/oauth/token`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Authorization': `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`,
+        },
+        body: new URLSearchParams({
+          grant_type: 'authorization_code',
+          code,
+          redirect_uri: redirectUri,
+        }).toString(),
+      });
+
+      const tokenData = await tokenResponse.json();
+      
+      if (!tokenResponse.ok) {
+        console.error('Token exchange failed:', tokenData);
+        return {
+          statusCode: tokenResponse.status,
+          headers,
+          body: JSON.stringify({ message: tokenData.message || 'Token exchange failed' }),
+        };
+      }
+
+      // Fetch user data
+      const userResponse = await fetch(`${PINTEREST_API_URL}/user_account`, {
+        headers: {
+          'Authorization': `Bearer ${tokenData.access_token}`,
+        },
+      });
+
+      const userData = await userResponse.json();
+      
+      if (!userResponse.ok) {
+        console.error('User data fetch failed:', userData);
+        return {
+          statusCode: userResponse.status,
+          headers,
+          body: JSON.stringify({ message: userData.message || 'Failed to fetch user data' }),
+        };
+      }
+
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({
+          token: tokenData,
+          user: userData,
+        }),
+      };
     }
 
-    // Handle board fetching
+    // Handle boards fetch
     if (event.httpMethod === 'GET') {
       const accessToken = event.headers.authorization?.replace('Bearer ', '');
       if (!accessToken) {
         return {
           statusCode: 401,
           headers,
-          body: JSON.stringify({ error: 'No access token provided' }),
+          body: JSON.stringify({ message: 'No access token provided' }),
         };
       }
 
       const response = await fetch(`${PINTEREST_API_URL}/boards`, {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
+          'Accept': 'application/json',
         },
       });
 
       const data = await response.json();
       
       if (!response.ok) {
-        console.error('Boards fetch failed:', data);
-        throw new Error(data.message || 'Failed to fetch boards');
+        console.error('Pinterest API Error:', data);
+        return {
+          statusCode: response.status,
+          headers,
+          body: JSON.stringify({ message: data.message || 'Failed to fetch boards' }),
+        };
       }
 
       return {
         statusCode: 200,
         headers,
-        body: JSON.stringify(data.items || []),
+        body: JSON.stringify(data),
       };
     }
 
     return {
-      statusCode: 400,
+      statusCode: 404,
       headers,
-      body: JSON.stringify({ error: 'Invalid request' }),
+      body: JSON.stringify({ message: 'Not found' }),
     };
   } catch (error) {
     console.error('Pinterest API Error:', error);
@@ -113,8 +130,8 @@ export const handler: Handler = async (event) => {
       statusCode: 500,
       headers,
       body: JSON.stringify({
-        error: error instanceof Error ? error.message : 'Internal server error',
+        message: error instanceof Error ? error.message : 'Internal server error',
       }),
     };
   }
-}
+};
