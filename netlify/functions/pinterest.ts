@@ -71,6 +71,37 @@ export const handler: Handler = async (event) => {
       }
     }
 
+    // Handle board fetching
+    if (event.httpMethod === 'GET') {
+      const accessToken = event.headers.authorization?.replace('Bearer ', '');
+      if (!accessToken) {
+        return {
+          statusCode: 401,
+          headers,
+          body: JSON.stringify({ error: 'No access token provided' }),
+        };
+      }
+
+      const response = await fetch(`${PINTEREST_API_URL}/boards`, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+        },
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        console.error('Boards fetch failed:', data);
+        throw new Error(data.message || 'Failed to fetch boards');
+      }
+
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify(data.items || []),
+      };
+    }
+
     return {
       statusCode: 400,
       headers,
