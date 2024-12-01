@@ -41,7 +41,11 @@ export function Accounts() {
   const handleRefreshBoards = async (accountId: string) => {
     try {
       setIsRefreshing(true);
-      const account = useAccountStore.getState().getAccount(accountId);
+      const account = accounts.find(a => a.id === accountId);
+      if (!account) {
+        throw new Error('Account not found');
+      }
+
       const updatedBoards = await fetchPinterestBoards(account.token.access_token);
       await useAccountStore.getState().setBoards(accountId, updatedBoards);
       toast.success('Boards refreshed successfully');
