@@ -17,18 +17,20 @@ export const handler: Handler = async (event) => {
     };
   }
 
-  // Route requests to appropriate handlers
-  if (event.path.endsWith('/auth')) {
-    return authHandler(event);
-  }
-  
-  if (event.path.endsWith('/boards')) {
-    return boardsHandler(event);
-  }
+  // Extract the endpoint from the path
+  const path = event.path.replace('/.netlify/functions/pinterest/', '');
 
-  return {
-    statusCode: 404,
-    headers,
-    body: JSON.stringify({ error: 'Not found' }),
-  };
+  // Route requests to appropriate handlers
+  switch (path) {
+    case 'auth':
+      return authHandler(event);
+    case 'boards':
+      return boardsHandler(event);
+    default:
+      return {
+        statusCode: 404,
+        headers,
+        body: JSON.stringify({ error: 'Not found' }),
+      };
+  }
 };
