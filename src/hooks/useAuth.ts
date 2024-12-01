@@ -6,20 +6,27 @@ import { useAccountStore } from '@/lib/store';
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const initializeStore = useAccountStore((state) => state.initializeStore);
+  const { initializeStore, resetStore } = useAccountStore();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
-      setLoading(false);
       
-      if (currentUser) {
-        initializeStore(currentUser.uid);
+      try {
+        if (currentUser) {
+          await initializeStore(currentUser.uid);
+        } else {
+          resetStore();
+        }
+      } catch (error) {
+        console.error('Error during store initialization:', error);
+      } finally {
+        setLoading(false); // End loading state after processing
       }
     });
 
-    return () => unsubscribe();
-  }, [initializeStore]);
+    return () => unsubscribe(); // Clean up listener
+  }, [initializeStore, resetStore]);
 
   return { user, loading };
 }
