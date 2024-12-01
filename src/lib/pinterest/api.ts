@@ -15,7 +15,7 @@ export function getPinterestAuthUrl(): string {
 }
 
 export async function exchangePinterestCode(code: string): Promise<{ token: PinterestToken; user: PinterestUser }> {
-  const response = await fetch('/.netlify/functions/pinterest', {
+  const response = await fetch('/.netlify/functions/pinterest/auth', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ 
@@ -36,7 +36,7 @@ export async function exchangePinterestCode(code: string): Promise<{ token: Pint
 }
 
 export async function fetchPinterestBoards(accessToken: string): Promise<PinterestBoard[]> {
-  const response = await fetch('/.netlify/functions/pinterest', {
+  const response = await fetch('/.netlify/functions/pinterest/boards', {
     method: 'GET',
     headers: { 
       'Authorization': `Bearer ${accessToken}`,
