@@ -9,7 +9,8 @@ export function getPinterestAuthUrl(): string {
   const state = crypto.randomUUID();
   const redirectUri = encodeURIComponent(REDIRECT_URI);
   
-  return `https://www.pinterest.com/oauth/?client_id=${env.VITE_PINTEREST_CLIENT_ID}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&state=${state}`;
+  // Use the sandbox OAuth endpoint
+  return `https://api-sandbox.pinterest.com/oauth/?client_id=${env.VITE_PINTEREST_CLIENT_ID}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&state=${state}`;
 }
 
 export async function exchangePinterestCode(code: string): Promise<{ token: PinterestToken; user: PinterestUser }> {
@@ -24,13 +25,13 @@ export async function exchangePinterestCode(code: string): Promise<{ token: Pint
     }),
   });
 
-  const data = await response.json();
-
   if (!response.ok) {
-    throw new Error(data.error || 'Failed to exchange Pinterest code');
+    const error = await response.json();
+    console.error('Pinterest token exchange failed:', error);
+    throw new Error(error.error || 'Failed to exchange Pinterest code');
   }
 
-  return data;
+  return response.json();
 }
 
 export async function fetchPinterestBoards(accessToken: string): Promise<PinterestBoard[]> {
@@ -41,11 +42,12 @@ export async function fetchPinterestBoards(accessToken: string): Promise<Pintere
     },
   });
 
-  const data = await response.json();
-
   if (!response.ok) {
-    throw new Error(data.error || 'Failed to fetch boards');
+    const error = await response.json();
+    console.error('Failed to fetch Pinterest boards:', error);
+    throw new Error(error.error || 'Failed to fetch boards');
   }
 
+  const data = await response.json();
   return data.items || [];
 }
