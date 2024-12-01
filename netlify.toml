@@ -1,6 +1,7 @@
 [build]
   command = "npm run build"
   publish = "dist"
+  functions = "netlify/functions"
 
 [[redirects]]
   from = "/*"
@@ -10,5 +11,11 @@
 [build.environment]
   NODE_VERSION = "20"
 
-# Environment variables should be set in Netlify's dashboard
-# DO NOT add sensitive values here
+[functions]
+  node_bundler = "esbuild"
+  external_node_modules = ["node-fetch"]
+
+[[redirects]]
+  from = "/.netlify/functions/pinterest/*"
+  to = "/.netlify/functions/pinterest/:splat"
+  status = 200
