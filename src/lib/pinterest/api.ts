@@ -2,19 +2,18 @@ import type { PinterestBoard, PinterestToken, PinterestUser } from '@/types/pint
 import { env } from '@/lib/config/env';
 
 const PINTEREST_API_URL = 'https://api-sandbox.pinterest.com/v5';
-const REDIRECT_URI = typeof window !== 'undefined' 
-  ? `${window.location.origin}/callback`
-  : '';
+const REDIRECT_URI = `${window.location.origin}/callback`;
 
-export async function getPinterestAuthUrl() {
+export function getPinterestAuthUrl(): string {
   const scope = 'boards:read,pins:read,pins:write,user_accounts:read,boards:write';
   const state = crypto.randomUUID();
   const redirectUri = encodeURIComponent(REDIRECT_URI);
+  
   return `https://www.pinterest.com/oauth/?client_id=${env.VITE_PINTEREST_CLIENT_ID}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&state=${state}`;
 }
 
 export async function exchangePinterestCode(code: string): Promise<{ token: PinterestToken; user: PinterestUser }> {
-  const response = await fetch('/.netlify/functions/pinterest', {
+  const response = await fetch('/.netlify/functions/pinterest/auth', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ 
@@ -25,29 +24,28 @@ export async function exchangePinterestCode(code: string): Promise<{ token: Pint
     }),
   });
 
+  const data = await response.json();
+
   if (!response.ok) {
-    const error = await response.json();
-    console.error('Pinterest token exchange failed:', error);
-    throw new Error(error.message || 'Failed to exchange Pinterest code');
+    throw new Error(data.error || 'Failed to exchange Pinterest code');
   }
 
-  return response.json();
+  return data;
 }
 
 export async function fetchPinterestBoards(accessToken: string): Promise<PinterestBoard[]> {
-  // Use the Netlify function instead of direct API call to avoid CORS
-  const response = await fetch('/.netlify/functions/pinterest', {
+  const response = await fetch('/.netlify/functions/pinterest/boards', {
     headers: { 
       'Authorization': `Bearer ${accessToken}`,
       'Content-Type': 'application/json'
     },
   });
 
+  const data = await response.json();
+
   if (!response.ok) {
-    const error = await response.json();
-    console.error('Failed to fetch Pinterest boards:', error);
-    throw new Error(error.message || 'Failed to fetch boards');
+    throw new Error(data.error || 'Failed to fetch boards');
   }
 
-  return response.json();
+  return data.items || [];
 }
