@@ -1,0 +1,46 @@
+{
+  "rules": {
+    "users": {
+      "$uid": {
+        ".read": "$uid === auth.uid",
+        ".write": "$uid === auth.uid",
+        
+        "accounts": {
+          "$accountId": {
+            ".validate": "newData.hasChildren(['id', 'user', 'token', 'lastRefreshed'])",
+            "token": {
+              ".validate": "newData.hasChildren(['access_token', 'refresh_token', 'expires_in'])"
+            },
+            "user": {
+              ".validate": "newData.hasChildren(['username', 'account_type'])"
+            }
+          }
+        },
+        
+        "boards": {
+          "$accountId": {
+            "$boardId": {
+              ".validate": "newData.hasChildren(['id', 'name', 'privacy'])"
+            }
+          }
+        },
+        
+        "scheduled_pins": {
+          "$pinId": {
+            ".validate": "newData.hasChildren(['title', 'description', 'link', 'imageUrl', 'boardId', 'scheduledTime', 'status'])",
+            "status": {
+              ".validate": "newData.val() === 'scheduled' || newData.val() === 'published' || newData.val() === 'failed'"
+            },
+            "scheduledTime": {
+              ".validate": "newData.isString() && newData.val().matches(/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}.\\d{3}Z$/)"
+            }
+          }
+        }
+      }
+    },
+    
+    // Disable direct access to root
+    ".read": false,
+    ".write": false
+  }
+}
