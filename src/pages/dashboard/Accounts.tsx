@@ -27,11 +27,11 @@ export function Accounts() {
   const handleConnectPinterest = async () => {
     try {
       setIsConnecting(true);
-      const authUrl = await getPinterestAuthUrl();
+      const authUrl = getPinterestAuthUrl();
       window.location.href = authUrl;
     } catch (error) {
-      console.error('Error connecting Pinterest:', error);
       toast.error('Failed to connect to Pinterest');
+      throw error;
     } finally {
       setIsConnecting(false);
     }
@@ -40,15 +40,13 @@ export function Accounts() {
   const handleRefreshBoards = async (accountId: string) => {
     try {
       setIsRefreshing(true);
-      const account = accounts?.find(a => a.id === accountId);
-      if (!account) throw new Error('Account not found');
-
+      const account = useAccountStore.getState().getAccount(accountId);
       const updatedBoards = await fetchPinterestBoards(account.token.access_token);
       await useAccountStore.getState().setBoards(accountId, updatedBoards);
       toast.success('Boards refreshed successfully');
     } catch (error) {
-      console.error('Error refreshing boards:', error);
       toast.error('Failed to refresh boards');
+      throw error;
     } finally {
       setIsRefreshing(false);
     }
@@ -59,8 +57,8 @@ export function Accounts() {
       await useAccountStore.getState().removeAccount(accountId);
       toast.success('Account disconnected successfully');
     } catch (error) {
-      console.error('Error disconnecting account:', error);
       toast.error('Failed to disconnect account');
+      throw error;
     }
   };
 
