@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/Button';
-import { getPinterestAuthUrl } from '@/lib/pinterest';
+import { getPinterestAuthUrl, fetchPinterestBoards } from '@/lib/pinterest/api';
 import { useAccountStore } from '@/lib/store';
 import { toast } from 'sonner';
 import { Trash2, RefreshCw } from 'lucide-react';
@@ -44,7 +44,7 @@ export function Accounts() {
       if (!account) throw new Error('Account not found');
 
       const updatedBoards = await fetchPinterestBoards(account.token.access_token);
-      useAccountStore.getState().setBoards(accountId, updatedBoards);
+      await useAccountStore.getState().setBoards(accountId, updatedBoards);
       toast.success('Boards refreshed successfully');
     } catch (error) {
       console.error('Error refreshing boards:', error);
